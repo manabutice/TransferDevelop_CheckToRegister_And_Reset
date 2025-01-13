@@ -1,0 +1,76 @@
+Sub TransferDevelopCheckToRegisterAndReset()
+    Dim srcSheet As Worksheet ' 現像チェックシート
+    Dim destSheet As Worksheet ' 登録リストシート
+    Dim srcRow As Long, destRow As Long
+    Dim i As Long, j As Long ' ループカウンタ
+
+    ' シートを指定
+    Set srcSheet = ThisWorkbook.Sheets("現像チェック")
+    Set destSheet = ThisWorkbook.Sheets("登録リスト")
+
+    ' 登録リストの次の空き行を取得
+    destRow = destSheet.Cells(destSheet.Rows.Count, "A").End(xlUp).Row + 1
+    If destRow < 2 Then destRow = 2 ' データがない場合は2行目から開始
+
+    ' 転記処理 (A2～A20, A列～X列)
+    For srcRow = 2 To 20 ' A2～A20
+        Call 転記サブルーチン(srcSheet, destSheet, srcRow, destRow)
+        destRow = destRow + 1 ' 次の行に進む
+    Next srcRow
+
+    ' リセット処理 (条件を厳守)
+    Call 現像チェックシートリセット
+
+    ' 完了メッセージ
+    MsgBox "現像チェックの内容を登録リストに転記し、リセット対象をリセットしました。", vbInformation
+End Sub
+
+' 転記処理 (1行ごとに転記するサブルーチン)
+Sub 転記サブルーチン(srcSheet As Worksheet, destSheet As Worksheet, srcRow As Long, destRow As Long)
+    Dim j As Long
+
+    With srcSheet
+        ' A列からX列を転記 (A列=1, X列=24)
+        For j = 1 To 24
+            destSheet.Cells(destRow, j).Value = .Cells(srcRow, j).Value
+        Next j
+    End With
+End Sub
+
+' リセット処理 (条件を厳守)
+Sub 現像チェックシートリセット()
+    Dim srcSheet As Worksheet ' 現像チェックシート
+    Dim i As Long, j As Long ' ループカウンタ
+
+    ' シートを指定
+    Set srcSheet = ThisWorkbook.Sheets("現像チェック")
+
+    ' リセット処理 (A2～A20, A列～X列)
+    For i = 2 To 20
+        ' リセットしない条件をチェック
+        If i = 2 Or i = 11 Or i = 12 Then
+            ' リセットしない行はスキップ
+            GoTo SkipRow
+        End If
+
+        ' A列 (1列目) をリセット (関数を保持)
+        If Not srcSheet.Cells(i, 1).HasFormula Then
+            srcSheet.Cells(i, 1).ClearContents
+        End If
+
+        ' B列～E列はリセットしない
+        For j = 6 To 24 ' F列 (6列目) ～ X列 (24列目)
+            ' 関数を保持しつつリセット
+            If Not srcSheet.Cells(i, j).HasFormula Then
+                srcSheet.Cells(i, j).ClearContents
+            End If
+
+            ' チェックボックス (TRUE/FALSE) をリセット
+            If srcSheet.Cells(i, j).Value = "TRUE" Or srcSheet.Cells(i, j).Value = "FALSE" Then
+                srcSheet.Cells(i, j).Value = False
+            End If
+        Next j
+
+SkipRow:
+    Next i
+End Sub
